@@ -1,0 +1,207 @@
+/*
+ * support for the imx6 based aristainetos2-revB board
+ *
+ * Copyright (C) 2015 Heiko Schocher <hs@denx.de>
+ *
+ * This file is dual-licensed: you can use it either under the terms
+ * of the GPL or the X11 license, at your option. Note that this dual
+ * licensing only applies to this file, and not this project as a
+ * whole.
+ *
+ *  a) This file is free software; you can redistribute it and/or
+ *     modify it under the terms of the GNU General Public License
+ *     version 2 as published by the Free Software Foundation.
+ *
+ *     This file is distributed in the hope that it will be useful
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ * Or, alternatively
+ *
+ *  b) Permission is hereby granted, free of charge, to any person
+ *     obtaining a copy of this software and associated documentation
+ *     files (the "Software"), to deal in the Software without
+ *     restriction, including without limitation the rights to use
+ *     copy, modify, merge, publish, distribute, sublicense, and/or
+ *     sell copies of the Software, and to permit persons to whom the
+ *     Software is furnished to do so, subject to the following
+ *     conditions:
+ *
+ *     The above copyright notice and this permission notice shall be
+ *     included in all copies or substantial portions of the Software.
+ *
+ *     THE SOFTWARE IS PROVIDED , WITHOUT WARRANTY OF ANY KIND
+ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY
+ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ *     OTHER DEALINGS IN THE SOFTWARE.
+ */
+/dts-v1/;
+#include "imx6dl.dtsi"
+#include "imx6qdl-aristainetos2b.dtsi"
+
+/ {
+	model = "aristainetos2-revB i.MX6 Dual Lite Board 4";
+	compatible = "fsl,imx6dl";
+
+	memory {
+		reg = <0x10000000 0x40000000>;
+	};
+
+	display0: display@di0 {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "fsl,imx-parallel-display";
+		interface-pix-fmt = "rgb24";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_ipu_disp>;
+
+		port@0 {
+			reg = <0>;
+			display0_in: endpoint {
+				remote-endpoint = <&ipu1_di0_disp0>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			display_out: endpoint {
+				remote-endpoint = <&panel_in>;
+			};
+		};
+	};
+};
+
+&ipu1_di0_disp0 {
+	remote-endpoint = <&display0_in>;
+};
+
+&ecspi1 {
+	lcd_panel: display@1 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "lg,lg4573";
+		spi-max-frequency = <10000000>;
+		reset-gpios = <&gpio2 11 GPIO_ACTIVE_HIGH>;
+		reg = <1>;
+		enable-gpios = <&gpio6 15 GPIO_ACTIVE_HIGH>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&display_out>;
+			};
+		};
+	};
+};
+
+&i2c3 {
+	touch: touch@4b {
+		compatible = "atmel,maxtouch";
+		reg = <0x4b>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <9 8>;
+	};
+	penmount: penmount-i2c@38 {
+		compatible = "penmount,pct30xx";
+		reg = <0x38>;
+		interrupt-parent = <&gpio2>;
+		interrupts = <9 8>; // IRQ_TYPE_LEVEL_LOW not used in driver (hardcoded)
+		gpio_intr = <&gpio2 9 0>; // needs to be the same as above interrupt declaration
+	};
+};
+
+&can1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan1>;
+	status = "okay";
+};
+
+&can2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_flexcan2>;
+	status = "okay";
+};
+
+&usdhc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc1>;
+	cd-gpios = <&gpio1 27 GPIO_ACTIVE_LOW>;
+	wp-gpios = <&gpio4 20 GPIO_ACTIVE_HIGH>;
+	no-1-8-v;
+	status = "okay";
+};
+
+&usdhc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc2>;
+	cd-gpios = <&gpio4 5 GPIO_ACTIVE_LOW>; /* comment out this line to make the WiFi Eval-Module work in SD-Slot2 */
+/*	broken-cd; remove comment  to make the WiFi Eval-Module work in SD-Slot2, causes 6% CPU load if no WiFi module installed (polling) */
+
+	wp-gpios = <&gpio2 10 GPIO_ACTIVE_HIGH>;
+	no-1-8-v;
+	status = "okay";
+};
+
+&iomuxc {
+	pinctrl_ipu_disp: ipudisp1grp {
+		fsl,pins = <
+			MX6QDL_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK 0x31
+			MX6QDL_PAD_DI0_PIN15__IPU1_DI0_PIN15       0xE1
+			MX6QDL_PAD_DI0_PIN2__IPU1_DI0_PIN02        0x10
+			MX6QDL_PAD_DI0_PIN3__IPU1_DI0_PIN03        0x10
+			MX6QDL_PAD_DISP0_DAT0__IPU1_DISP0_DATA00   0xE1
+			MX6QDL_PAD_DISP0_DAT1__IPU1_DISP0_DATA01   0xE1
+			MX6QDL_PAD_DISP0_DAT2__IPU1_DISP0_DATA02   0xE1
+			MX6QDL_PAD_DISP0_DAT3__IPU1_DISP0_DATA03   0xE1
+			MX6QDL_PAD_DISP0_DAT4__IPU1_DISP0_DATA04   0xE1
+			MX6QDL_PAD_DISP0_DAT5__IPU1_DISP0_DATA05   0xE1
+			MX6QDL_PAD_DISP0_DAT6__IPU1_DISP0_DATA06   0xE1
+			MX6QDL_PAD_DISP0_DAT7__IPU1_DISP0_DATA07   0xE1
+			MX6QDL_PAD_DISP0_DAT8__IPU1_DISP0_DATA08   0xE1
+			MX6QDL_PAD_DISP0_DAT9__IPU1_DISP0_DATA09   0xE1
+			MX6QDL_PAD_DISP0_DAT10__IPU1_DISP0_DATA10  0xE1
+			MX6QDL_PAD_DISP0_DAT11__IPU1_DISP0_DATA11  0xE1
+			MX6QDL_PAD_DISP0_DAT12__IPU1_DISP0_DATA12  0xE1
+			MX6QDL_PAD_DISP0_DAT13__IPU1_DISP0_DATA13  0xE1
+			MX6QDL_PAD_DISP0_DAT14__IPU1_DISP0_DATA14  0xe1
+			MX6QDL_PAD_DISP0_DAT15__IPU1_DISP0_DATA15  0xE1
+			MX6QDL_PAD_DISP0_DAT16__IPU1_DISP0_DATA16  0xE1
+			MX6QDL_PAD_DISP0_DAT17__IPU1_DISP0_DATA17  0xE1
+			MX6QDL_PAD_DISP0_DAT18__IPU1_DISP0_DATA18  0xE1
+			MX6QDL_PAD_DISP0_DAT19__IPU1_DISP0_DATA19  0xE1
+			MX6QDL_PAD_DISP0_DAT20__IPU1_DISP0_DATA20  0xE1
+			MX6QDL_PAD_DISP0_DAT21__IPU1_DISP0_DATA21  0xE1
+			MX6QDL_PAD_DISP0_DAT22__IPU1_DISP0_DATA22  0xE1
+			MX6QDL_PAD_DISP0_DAT23__IPU1_DISP0_DATA23  0xE1
+		>;
+	};
+	pinctrl_usdhc1: usdhc1grp {
+		fsl,pins = <
+			MX6QDL_PAD_SD1_CMD__SD1_CMD    0x17059
+			MX6QDL_PAD_SD1_CLK__SD1_CLK    0x10059
+			MX6QDL_PAD_SD1_DAT0__SD1_DATA0 0x17059
+			MX6QDL_PAD_SD1_DAT1__SD1_DATA1 0x17059
+			MX6QDL_PAD_SD1_DAT2__SD1_DATA2 0x17059
+			MX6QDL_PAD_SD1_DAT3__SD1_DATA3 0x17059
+			MX6QDL_PAD_ENET_RXD0__GPIO1_IO27	0x1b0b0 /* SD1 card detect input */
+			MX6QDL_PAD_DI0_PIN4__GPIO4_IO20		0x1b0b0 /* SD1 write protect input */
+		>;
+	};
+
+	pinctrl_usdhc2: usdhc2grp {
+		fsl,pins = <
+			MX6QDL_PAD_SD2_CMD__SD2_CMD    0x71
+			MX6QDL_PAD_SD2_CLK__SD2_CLK    0x71
+			MX6QDL_PAD_SD2_DAT0__SD2_DATA0 0x71
+			MX6QDL_PAD_SD2_DAT1__SD2_DATA1 0x71
+			MX6QDL_PAD_SD2_DAT2__SD2_DATA2 0x71
+			MX6QDL_PAD_SD2_DAT3__SD2_DATA3 0x71
+			MX6QDL_PAD_GPIO_19__GPIO4_IO05		0x1b0b0 /* SD2 card detect input */
+			MX6QDL_PAD_SD4_DAT2__GPIO2_IO10		0x1b0b0 /* SD2 write protect input */
+		>;
+	};
+};
